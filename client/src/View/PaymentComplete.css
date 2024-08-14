@@ -1,0 +1,81 @@
+* {
+    padding: 0;
+    margin: 0;
+    text-decoration: none;
+    list-style: none;
+}
+
+
+
+.paymentcomplete-body {
+    width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.payment-complete-text h2 {
+    font-size: 30px;
+
+}
+
+.payment-complete-text h2 span  {
+    color: #a8947f;
+    padding: 0px 5px;
+    font-size: 40px;
+    text-decoration: underline;
+    text-underline-offset: 8px;
+}
+
+.payment-complete-info {
+    border : 1px solid #a8947f;
+    border-bottom: none;
+    margin-bottom: 40px;
+    border-radius: 5px;
+}
+
+
+.payment-complete-info h3 {
+    font-size: 24px;
+    background-color: #a8947f;
+    color: #ffffff;
+    padding: 15px 20px;
+}
+
+
+.payment-complete-info  ul li {
+    border-bottom: 0.2px solid #a8947f;
+    padding: 10px 30px;
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+.payment-complete-info ul li p  {
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.payment-complete-info:last-child>span {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+
+.pc-button-div {
+    width: 600px;
+}
+
+.pc-button {
+    padding: 10px 20px;
+    background-color: #95826e;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    margin:0px 20px;
+}
+
+
+.pc-button:hover {
+    background-color: #7e6e5c;
+}

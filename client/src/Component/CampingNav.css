@@ -1,0 +1,125 @@
+#gMenu {
+    position: fixed;
+    right: 0;
+    top: 90%;
+    width: 100%;
+    z-index: 99;
+  }
+  /* 세 줄 버튼을 화면 오른쪽 위에 고정 배치합니다 */
+  #gMenu .menu-icon {
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 12px;
+    padding-top: 5px;
+    height: 12px;
+  }
+  /* 세 줄 버튼의 가운데 선을 지정합니다 */
+  #gMenu .menu-icon .navicon {
+    background: #804b00; /* 색상은 자유롭게 선택합니다 */
+    display: block;
+    height: 2px; /* 두께 */
+    width: 31px; /* 크기 */
+    position: relative;
+    transition: background .4s ease-out; /* 형태가 바뀔 때의 애니메이션 */
+  }
+  /* 세 줄 버튼의 위아래 선을 가상 요소로 추가 */
+  #gMenu .menu-icon .navicon::before,
+  #gMenu .menu-icon .navicon::after {
+    background: #804b00; /* 색상은 자유롭게 선택합니다 */
+    content: '';
+    display: block;
+    height: 100%;
+    position: absolute;
+    transition: all .4s ease-out; /* 형태가 바뀔 때의 애니메이션 */
+    width: 100%;
+  }
+  #gMenu .menu-icon .navicon::before {top: 10px;} /* 가운데보다 약간 위쪽에 배치합니다 */
+  #gMenu .menu-icon .navicon::after {top: -10px;} /* 가운데보다 약간 아래쪽에 배치합니다 */
+  /* 표시될 메뉴 목록입니다 */
+  #gMenu .menu {
+    background-color: rgba(177, 177, 177, 0.9);
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height .6s;
+    text-align: center;
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 500px;
+    width: 250px;
+    top: 350px;
+    background: transparent;
+  
+  }
+  /* 메뉴 항목의 디자인입니다 */
+ 
+  #gMenu .menu li a {
+    display: block;
+    padding: 24px 20px;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+  #gMenu .menu li a:hover {
+    background-color: #f4f4f4;
+  }
+  /* 체크박스는 항상 숨깁니다 */
+  #gMenu .menu-btn {
+    display: none;
+  }
+  /* ▼▼▼아래는 체크박스가 ON일 때의 상태입니다▼▼▼ */
+  #gMenu .menu-btn:checked ~ .menu {
+    max-height: 850px; /* ★체크박스가 ON일 때 높이를 338px로 표시합니다 */
+    width: 250px;
+    transition: max-height .6s;
+  }
+  /* 세 줄 버튼의 가운데 선을 숨김 상태로 만듭니다 */
+  #gMenu .menu-btn:checked ~ .menu-icon .navicon {background: transparent;}
+  
+  /* 세 줄 버튼의 위아래 선을 45도 기울여서 ✕ 모양으로 만듭니다 */
+  #gMenu .menu-btn:checked ~ .menu-icon .navicon::before {transform: rotate(-45deg);top: 0;}
+  #gMenu .menu-btn:checked ~ .menu-icon .navicon::after {transform: rotate(45deg);top: 0;}
+
+.menu img {
+  width:100% ;
+  height:250px ;
+  object-fit: cover;
+}
+
+.menu img:hover {
+  right: 25%;
+  position: fixed;
+ width: 50%;
+ height: 850px;
+ top: 5%;
+
+}
+.map_li {
+  width: 250px;
+  height: 300px;
+}
+
+
+.nav_camping {
+    position: fixed;
+    width: 100%;
+    top: 70%;
+ text-align: right;
+ padding-right: 10px;
+ }
+
+.button_camping{
+    background-color: #fceedeee;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #aa9986;
+  font-weight:bold;
+  font-family: 'InkLipquid';
+}
+
+.button_camping:hover {
+    background-color: #d8ccbfee;
+    border-radius:10px;
+}

@@ -1,0 +1,90 @@
+* {
+    padding: 0;
+    margin: 0;
+    text-decoration: none;
+    list-style: none;
+}
+
+
+.Reservation-calendar{
+    width: 1200px;
+    margin: 0 auto;
+}
+
+.Reservation-days-col {
+    width: 200px;
+    height: 30px;
+
+}
+.rv-header {
+    width: 100%;
+    text-align: center;
+}
+
+
+.rv-year {
+    font-weight: 600;
+    font-size: 30px;
+}
+.rv-month {
+    font-weight: 600;
+    font-size: 19px;
+}
+
+.rv-row {
+    display: flex;
+}
+
+.rv-days {
+    text-align: center;
+    border : none  ;
+}
+.rv-cell {
+    border: 1px solid #eee;
+    width: 200px;
+    height: 300px;
+    padding-bottom: 20px;
+}
+
+
+.rv-not-valid {
+    color: #eee;
+    
+}
+
+.col-end {
+    font-size: 30px;
+}
+
+.rv-icon {
+    padding: 0 15px;
+    color: rgb(133, 113, 113);
+}
+
+.rv-icon:hover {
+    cursor: pointer;
+}
+
+.rv-camping-box {
+    text-align: center;
+}
+
+.rv-camping-link {
+    color: black;
+    text-decoration: underline;
+    font-size: 16px;
+}
+
+.rv-finish {
+    height: 100%;
+    text-align: center;
+}
+
+.rv-finish-text {
+    margin-top: 30px;
+    color: #cacaca;
+}
+.disabled {
+    text-decoration: none;
+    color: rgb(211, 90, 90);
+}

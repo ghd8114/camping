@@ -1,0 +1,1465 @@
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom';
+import Detailreview from './View/Detailreview';
+import NewsEvent from './View/NewsEvent';
+import Reviewwrite from './View/Reviewwrite';
+import Reviewlist from './View/Reviewlist';
+import Eventlist from './View/Eventlist';
+import Newswrite from './View/Newswrite';
+import Editreview from './View/Editreview';
+import EditNewsEvent from './View/EditNewsEvent'; // Import the new component
+import { ReviewProvider } from './Component/ReviewContext';
+import { NewsProvider } from './Component/NewsContext';
+
+const App = () => {
+  return (
+    <ReviewProvider>
+      <NewsProvider>
+        <Router>
+          <div>
+            <header>
+              <p>헤더임</p>
+              <nav>
+                <ul>
+                  <li><Link to="/Reviewlist">Reviewlist</Link></li>
+                  <li><Link to="/Eventlist">Eventlist</Link></li>
+                </ul>
+              </nav>
+            </header>
+            <Routes>
+              <Route path="/" element={<Navigate to="/Reviewlist" />} />
+              <Route path="/Detailreview/:id" element={<Detailreview />} />
+              <Route path="/Newsevent/:id" element={<NewsEvent />} />
+              <Route path="/Reviewwrite" element={<Reviewwrite />} />
+              <Route path="/Reviewlist" element={<Reviewlist />} />
+              <Route path="/Eventlist" element={<Eventlist />} />
+              <Route path="/Newswrite" element={<Newswrite />} />
+              <Route path="/Editreview/:id" element={<Editreview />} />
+              <Route path="/EditNewsevent/:id" element={<EditNewsEvent />} /> {/* Add the route for EditNewsEvent */}
+            </Routes>
+            <footer>
+              <p>푸터임</p>
+            </footer>
+          </div>
+        </Router>
+      </NewsProvider>
+    </ReviewProvider>
+  );
+};
+
+export default App;
+import React, { useState, useContext } from 'react';
+import { ReviewContext } from '../Component/ReviewContext';
+import { useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const Reviewwrite = () => {
+  const { addReview } = useContext(ReviewContext);
+  const navigate = useNavigate();
+  const [review_head, setReviewHead] = useState(''); // 제목
+  const [review_content, setReviewContent] = useState(''); // 내용
+  const [file, setFile] = useState(null);
+
+  const handleFileClick = () => {
+    document.getElementById('file').click();
+  };
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const date = new Date().toISOString().split('T')[0]; // 날짜를 YYYY-MM-DD 형식으로 변환
+
+    const newReview = {
+      review_head,
+      review_content,
+      file_path: file ? file.name : '',
+      date,
+      author: '작성자명',
+      view_count: 0,
+      comments: []
+    };
+
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('http://localhost:8080/api/files/upload', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(filePath => {
+          newReview.file_path = filePath;
+          return fetch('http://localhost:8080/api/reviews', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newReview),
+          });
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(savedReview => {
+          addReview(savedReview);
+          navigate('/Reviewlist');
+        })
+        .catch(error => console.error('Error:', error));
+    } else {
+      fetch('http://localhost:8080/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newReview),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(savedReview => {
+          addReview(savedReview);
+          navigate('/Reviewlist');
+        })
+        .catch(error => console.error('Error:', error));
+    }
+  };
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">리뷰 게시글 작성</div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">제목</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={review_head}
+              onChange={(e) => setReviewHead(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="content">내용</label>
+            <textarea
+              id="content"
+              name="content"
+              rows="10"
+              value={review_content}
+              onChange={(e) => setReviewContent(e.target.value)}
+            ></textarea>
+          </div>
+          <div className="form-group">
+            <label htmlFor="file">파일 첨부</label>
+            <input
+              type="file"
+              id="file"
+              name="file"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <input
+              type="text"
+              id="file-info"
+              name="file-info"
+              value={file ? file.name : '파일 경로가 노출됩니다.'}
+              readOnly
+            />
+            <button type="button" onClick={handleFileClick}>
+              찾아보기
+            </button>
+            <button type="submit">글쓰기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Reviewwrite;
+import React, { useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ReviewContext } from '../Component/ReviewContext';
+import '../View/Review.css';
+
+const Reviewlist = () => {
+  const { reviews } = useContext(ReviewContext);
+  const navigate = useNavigate();
+
+  const handleWriteClick = () => {
+    navigate('/Reviewwrite');
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return ${year}-${month}-${day};
+  };
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">review</div>
+        <div className="search-123">
+          <input type="text" placeholder="Search" />
+        </div>
+        <table>
+          <thead>
+            <tr className="table-header">
+              <th className="title-header">제목</th>
+              <th>작성자</th>
+              <th>작성일</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reviews.map((review) => (
+              <tr key={review.review_id}>
+                <td className="title">
+                  <Link to={/Detailreview/${review.review_id}}>{review.review_head}</Link>
+                </td>
+                <td className="author">{review.author}</td>
+                <td className="date">{formatDate(review.date)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="pagination-123">
+          <button>1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+          <button className="active">7</button>
+        </div>
+        <div className="write-btn">
+          <button onClick={handleWriteClick}>글쓰기</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Reviewlist;
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const Newswrite = () => {
+  const navigate = useNavigate();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const newEvent = {
+      title,
+      description,
+      date: new Date(date).toISOString().split('T')[0], // 날짜를 YYYY-MM-DD 형식으로 변환
+      manager_id: 'default_manager',
+      type: 'default_type',
+      content: 'default_content',
+    };
+
+    fetch('http://localhost:8080/api/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newEvent),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Success:', data);  // 성공 메시지 출력
+      navigate('/Eventlist');
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
+  };
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">이벤트/공지사항 게시글 작성</div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">제목</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="description">내용</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="10"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            ></textarea>
+          </div>
+          <div className="form-group">
+            <label htmlFor="date">날짜</label>
+            <input
+              type="datetime-local"
+              id="date"
+              name="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+          <button type="submit">글쓰기</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Newswrite;
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const NewsEvent = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [newsItem, setNewsItem] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (id) {
+      fetch(http://localhost:8080/api/events/${id})
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          data.date = formatDate(data.date);
+          setNewsItem(data);
+        })
+        .catch(error => setError(error.message));
+    }
+  }, [id]);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return ${year}-${month}-${day};
+  };
+
+  if (error) return <div>오류 발생: {error}</div>;
+  if (!newsItem) return <div>뉴스가 없습니다.</div>;
+
+  const handleEditClick = () => {
+    navigate(/EditNewsevent/${id}); // 수정 페이지로 이동
+  };
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">news/event</div>
+        <div className="content-header">
+          <h2>{newsItem.title}</h2>
+        </div>
+        <div className="content">
+          <p className="event-info">{newsItem.date} 조회수 999 ♡</p>
+          <div className="event-details">
+            <p>{newsItem.description}</p>
+          </div>
+        </div>
+        <div className="write-btn">
+          <button onClick={handleEditClick}>수정하기</button>
+          <button onClick={() => navigate('/Newswrite')}>글쓰기</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewsEvent;
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const Eventlist = () => {
+  const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/events')
+      .then(response => response.json())
+      .then(data => setEvents(data))
+      .catch(error => console.error('Error:', error));
+  }, []);
+
+  const handleWriteClick = () => {
+    navigate('/Newswrite');
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return ${year}-${month}-${day};
+  };
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">Eventlist</div>
+        <div className="search-123">
+          <input type="text" placeholder="Search" />
+        </div>
+        <table>
+          <thead>
+            <tr className="table-header">
+              <th className="title-header">제목</th>
+              <th>작성자</th>
+              <th>작성일</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map(event => (
+              <tr key={event.event_id}>
+                <td className="title">
+                  <Link to={/Newsevent/${event.event_id}}>{event.title}</Link>
+                </td>
+                <td className="author">관리자</td>
+                <td className="date">{formatDate(event.date)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="pagination-123">
+          <button>1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+          <button className="active">7</button>
+        </div>
+        <div className="write-btn">
+          <button onClick={handleWriteClick}>글쓰기</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Eventlist;
+import React, { useContext, useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ReviewContext } from '../Component/ReviewContext';
+import '../View/Review.css';
+
+const Editreview = () => {
+  const { id } = useParams();
+  const { reviews, setReviews } = useContext(ReviewContext);
+  const navigate = useNavigate();
+  const [review, setReview] = useState(null);
+  const [reviewHead, setReviewHead] = useState('');
+  const [reviewContent, setReviewContent] = useState('');
+  const [file, setFile] = useState(null);
+
+  useEffect(() => {
+    const currentReview = reviews.find((r) => r.review_id === parseInt(id, 10));
+    if (currentReview) {
+      setReview(currentReview);
+      setReviewHead(currentReview.review_head);
+      setReviewContent(currentReview.review_content);
+    }
+  }, [id, reviews]);
+
+  const handleFileClick = () => {
+    document.getElementById('file').click();
+  };
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString().split('T')[0]; // 날짜를 YYYY-MM-DD 형식으로 변환
+
+    const updatedReview = {
+      ...review,
+      review_head: reviewHead,
+      review_content: reviewContent,
+      file_path: review.file_path || '', // 기본값 설정
+      date: formattedDate, // 포맷된 날짜 문자열
+      user_id: review.user_id || '', // 기본값 설정
+      review_num: review.review_num || 0, // 기본값 설정
+      review_no: review.review_no || 0, // 기본값 설정
+      author: review.author || '', // 기본값 설정
+      view_count: review.view_count || 0 // 기본값 설정
+    };
+
+    console.log("Updated Review:", updatedReview); // 데이터 확인용 콘솔 출력
+
+    const updateReview = (filePath) => {
+      if (filePath) {
+        updatedReview.file_path = filePath;
+      }
+      fetch(http://localhost:8080/api/reviews/${id}, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedReview),
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(Review update failed: ${text}) });
+        }
+        return response.json();
+      })
+      .then(savedReview => {
+        const updatedReviews = reviews.map((r) =>
+          r.review_id === savedReview.review_id ? savedReview : r
+        );
+        setReviews(updatedReviews);
+        navigate(/Detailreview/${id});
+      })
+      .catch(error => console.error('Error:', error.message));
+    };
+
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('http://localhost:8080/api/files/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(File upload failed: ${text}) });
+        }
+        return response.text();
+      })
+      .then(filePath => {
+        updateReview(filePath);
+      })
+      .catch(error => console.error('Error:', error.message));
+    } else {
+      updateReview();
+    }
+  };
+
+  if (!review) return <div>리뷰가 없습니다.</div>;
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">리뷰 게시글수정</div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">제목</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={reviewHead}
+              onChange={(e) => setReviewHead(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="content">내용</label>
+            <textarea
+              id="content"
+              name="content"
+              rows="10"
+              value={reviewContent}
+              onChange={(e) => setReviewContent(e.target.value)}
+            ></textarea>
+          </div>
+          <div className="form-group">
+            <label htmlFor="file">파일첨부</label>
+            <input
+              type="file"
+              id="file"
+              name="file"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <input
+              type="text"
+              id="file-info"
+              name="file-info"
+              value={file ? file.name : review.file_path || '파일 경로가 노출됩니다.'}
+              readOnly
+            />
+            <button type="button" onClick={handleFileClick}>
+              찾아보기
+            </button>
+            <button type="submit">수정하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Editreview;
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const EditNewsEvent = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [newsItem, setNewsItem] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+
+  useEffect(() => {
+    fetch(http://localhost:8080/api/events/${id})
+      .then(response => response.json())
+      .then(data => {
+        setNewsItem(data);
+        setTitle(data.title);
+        setDescription(data.description);
+        setDate(data.date);
+      })
+      .catch(error => console.error('Error:', error));
+  }, [id]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const updatedEvent = {
+      ...newsItem,
+      title,
+      description,
+      date: new Date(date).toISOString().split('T')[0], // 날짜를 YYYY-MM-DD 형식으로 변환
+    };
+
+    fetch(http://localhost:8080/api/events/${id}, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedEvent),
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => { throw new Error(Event update failed: ${text}) });
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Success:', data);
+      navigate(/Newsevent/${id});
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
+  };
+
+  if (!newsItem) return <div>뉴스가 없습니다.</div>;
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">이벤트/공지사항 수정</div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">제목</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="description">내용</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="10"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            ></textarea>
+          </div>
+          <div className="form-group">
+            <label htmlFor="date">날짜</label>
+            <input
+              type="datetime-local"
+              id="date"
+              name="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+          <button type="submit">수정하기</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default EditNewsEvent;
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import '../View/Review.css';
+
+const Detailreview = () => {
+  const { id } = useParams();
+  const [review, setReview] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchReview = async () => {
+      const response = await fetch(http://localhost:8080/api/reviews/${id});
+      const data = await response.json();
+      data.date = formatDate(data.date);
+      setReview(data);
+    };
+
+    fetchReview();
+  }, [id]);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return ${year}-${month}-${day};
+  };
+
+  if (!review) return <div>리뷰가 없습니다.</div>;
+
+  return (
+    <div>
+      <div className="container-123">
+        <div className="qwer">review</div>
+        <div className="content-header">
+          <h2>{review.review_head}</h2>
+        </div>
+        <div className="content">
+          <div className="post-info">
+            <span>{review.date}</span>
+            <span>조회수 {review.view_count} ♡</span>
+          </div>
+          {review.file_path && (
+            <div className="post-image">
+              <img src={http://localhost:8080${review.file_path}} alt="attached file" onError={(e) => e.target.style.display = 'none'} />
+            </div>
+          )}
+          <p className="post-content">{review.review_content}</p>
+        </div>
+        <div className="comments">
+          <h3>댓글</h3>
+          {review.comments.length > 0 ? review.comments.map((comment, index) => (
+            <div className="comment" key={index}>
+              <p>
+                <strong>댓글 작성자명</strong> {'★'.repeat(comment.rating)}{'★'.repeat(5 - comment.rating).replace(/★/g, '☆')}
+              </p>
+              <p>{comment.text}</p>
+            </div>
+          )) : <p>댓글이 없습니다.</p>}
+        </div>
+        <div className="write-comment">
+          <input
+            type="text"
+            placeholder="리뷰댓글"
+          />
+          <button className="back-button" onClick={() => navigate('/Reviewlist')}>목록</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Detailreview;
+import React, { createContext, useState, useEffect } from 'react';
+
+export const ReviewContext = createContext();
+
+export const ReviewProvider = ({ children }) => {
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/reviews')
+      .then(response => response.json())
+      .then(data => setReviews(data))
+      .catch(error => console.error('Error:', error));
+  }, []);
+
+  const addReview = (review) => {
+    setReviews([...reviews, review]);
+  };
+
+  return (
+    <ReviewContext.Provider value={{ reviews, addReview, setReviews }}>
+      {children}
+    </ReviewContext.Provider>
+  );
+};
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Reviewwrite from '../View/Reviewwrite';
+import Detailreview from '../View/Detailreview';
+import Reviewlist from '../View/Reviewlist';
+import { ReviewProvider } from './ReviewContext';
+
+const ReviewContainer = () => {
+  return (
+    <ReviewProvider>
+      <Routes>
+        <Route path="/Reviewwrite" element={<Reviewwrite />} />
+        <Route path="/Detailreview/:index" element={<Detailreview />} />
+        <Route path="/Reviewlist" element={<Reviewlist />} />
+      </Routes>
+    </ReviewProvider>
+  );
+};
+
+export default ReviewContainer;
+import React, { createContext, useState } from 'react';
+
+export const NewsContext = createContext();
+
+export const NewsProvider = ({ children }) => {
+  const [news, setNews] = useState([]);
+
+  const addNews = (newsItem) => {
+    setNews([...news, newsItem]);
+  };
+
+  return (
+    <NewsContext.Provider value={{ news, addNews }}>
+      {children}
+    </NewsContext.Provider>
+  );
+};
+package com.example.server.config;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class CustomLocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
+
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    @Override
+    public LocalDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        return LocalDateTime.parse(p.getText(), formatter);
+    }
+}
+package com.example.server.config;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class CustomLocalDateTimeSerializer extends StdSerializer<LocalDateTime> {
+
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    public CustomLocalDateTimeSerializer() {
+        this(null);
+    }
+
+    public CustomLocalDateTimeSerializer(Class<LocalDateTime> t) {
+        super(t);
+    }
+
+    @Override
+    public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider arg2) throws IOException {
+        gen.writeString(value.format(formatter));
+    }
+}
+package com.example.server.config;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+@Configuration
+public class JacksonConfig {
+
+    private static final String DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JavaTimeModule javaTimeModule = new JavaTimeModule();
+        javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(DATETIME_FORMATTER));
+        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(DATETIME_FORMATTER));
+        objectMapper.registerModule(javaTimeModule);
+        return objectMapper;
+    }
+}
+package com.example.server.controller;
+
+import com.example.server.entity.Event;
+import com.example.server.repository.EventRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/events")
+public class EventController {
+    @Autowired
+    private EventRepository eventRepository;
+
+    @GetMapping
+    public List<Event> getAllEvents() {
+        return eventRepository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public Event getEventById(@PathVariable("id") Long id) {
+        return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
+    }
+
+    @PostMapping
+    public Event createEvent(@RequestBody Event event) {
+        event.setPost_date(LocalDate.now());
+        event.setModi_date(LocalDate.now());
+        return eventRepository.save(event);
+    }
+
+    @PutMapping("/{id}")
+    public Event updateEvent(@PathVariable("id") Long id, @RequestBody Event updatedEvent) {
+        Event event = eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
+        event.setTitle(updatedEvent.getTitle());
+        event.setDescription(updatedEvent.getDescription());
+        event.setDate(updatedEvent.getDate());
+        event.setModi_date(LocalDate.now());
+        return eventRepository.save(event);
+    }
+}
+package com.example.server.controller;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.FileCopyUtils;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@RestController
+@RequestMapping("/api/files")
+public class FileUploadController {
+
+    private static final String UPLOAD_DIR = "uploads/";
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+        try {
+            Path path = Paths.get(UPLOAD_DIR + file.getOriginalFilename());
+            Files.createDirectories(path.getParent());
+            Files.write(path, file.getBytes());
+            // 파일 경로 반환
+            return ResponseEntity.ok("/api/files/" + file.getOriginalFilename());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("File upload failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{filename}")
+    public ResponseEntity<byte[]> getFile(@PathVariable("filename") String filename) {
+        try {
+            Path path = Paths.get(UPLOAD_DIR + filename);
+            byte[] fileBytes = Files.readAllBytes(path);
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
+            headers.add(HttpHeaders.CONTENT_TYPE, Files.probeContentType(path));
+            return ResponseEntity.ok().headers(headers).body(fileBytes);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+}
+package com.example.server.controller;
+
+import com.example.server.entity.Comment;
+import com.example.server.entity.Review;
+import com.example.server.repository.CommentRepository;
+import com.example.server.repository.ReviewRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/reviews")
+public class ReviewController {
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    @GetMapping
+    public List<Review> getAllReviews() {
+        List<Review> reviews = reviewRepository.findAll();
+        reviews.forEach(review -> {
+            if (review.getDate() != null) {
+                review.setFormattedDate(review.getDate().format(formatter));
+            }
+        });
+        return reviews;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Review> getReviewById(@PathVariable("id") Long id) {
+        Review review = reviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Review not found"));
+        if (review.getDate() != null) {
+            review.setFormattedDate(review.getDate().format(formatter));
+        }
+        return ResponseEntity.ok(review);
+    }
+
+    @PostMapping
+    public ResponseEntity<Review> createReview(@RequestBody Review review) {
+        review.setDate(LocalDate.now());
+        Review savedReview = reviewRepository.save(review);
+        return ResponseEntity.ok(savedReview);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Review> updateReview(@PathVariable("id") Long id, @RequestBody Review updatedReview) {
+        Review review = reviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Review not found"));
+        review.setReview_head(updatedReview.getReview_head());
+        review.setReview_content(updatedReview.getReview_content());
+        review.setFile_path(updatedReview.getFile_path());
+        review.setDate(updatedReview.getDate());
+        Review savedReview = reviewRepository.save(review);
+        return ResponseEntity.ok(savedReview);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReview(@PathVariable("id") Long id) {
+        reviewRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<Comment>> getCommentsByReviewId(@PathVariable("id") Long id) {
+        Review review = reviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Review not found"));
+        List<Comment> comments = commentRepository.findByReview(review);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<Comment> addCommentToReview(@PathVariable("id") Long id, @RequestBody Comment comment) {
+        Review review = reviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Review not found"));
+        comment.setReview(review);
+        Comment savedComment = commentRepository.save(comment);
+        return ResponseEntity.ok(savedComment);
+    }
+}
+package com.example.server.entity;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "comment")
+public class Comment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id")
+    @JsonBackReference
+    private Review review;
+
+    private String text;
+    private int rating;
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Review getReview() {
+        return review;
+    }
+
+    public void setReview(Review review) {
+        this.review = review;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public int getRating() {
+        return rating;
+    }
+
+    public void setRating(int rating) {
+        this.rating = rating;
+    }
+}
+package com.example.server.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "event")
+public class Event {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long event_id;
+
+    private String manager_id;
+    private String type;
+    private String content;
+    private LocalDate post_date;
+    private LocalDate modi_date;
+    private LocalDate date; // LocalDate로 변경
+    private String description;
+    private String title;
+
+    // Getters and Setters
+    public Long getEvent_id() {
+        return event_id;
+    }
+
+    public void setEvent_id(Long event_id) {
+        this.event_id = event_id;
+    }
+
+    public String getManager_id() {
+        return manager_id;
+    }
+
+    public void setManager_id(String manager_id) {
+        this.manager_id = manager_id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public LocalDate getPost_date() {
+        return post_date;
+    }
+
+    public void setPost_date(LocalDate post_date) {
+        this.post_date = post_date;
+    }
+
+    public LocalDate getModi_date() {
+        return modi_date;
+    }
+
+    public void setModi_date(LocalDate modi_date) {
+        this.modi_date = modi_date;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+}
+package com.example.server.entity;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.util.List;
+
+@Entity
+@Table(name = "review")
+public class Review {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long review_id;
+
+    private String user_id;
+    private Integer review_num;
+    private Integer review_no;
+    private String review_head;
+    private String review_content;
+    private LocalDate post_date;
+    private LocalDate modi_date;
+    private String author;
+    private LocalDate date;
+    private String file_path;
+    private Integer view_count;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Comment> comments;
+
+    @Transient
+    private String formattedDate;
+
+    // Getters and setters
+    public Long getReview_id() {
+        return review_id;
+    }
+
+    public void setReview_id(Long review_id) {
+        this.review_id = review_id;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
+    }
+
+    public Integer getReview_num() {
+        return review_num;
+    }
+
+    public void setReview_num(Integer review_num) {
+        this.review_num = review_num;
+    }
+
+    public Integer getReview_no() {
+        return review_no;
+    }
+
+    public void setReview_no(Integer review_no) {
+        this.review_no = review_no;
+    }
+
+    public String getReview_head() {
+        return review_head;
+    }
+
+    public void setReview_head(String review_head) {
+        this.review_head = review_head;
+    }
+
+    public String getReview_content() {
+        return review_content;
+    }
+
+    public void setReview_content(String review_content) {
+        this.review_content = review_content;
+    }
+
+    public LocalDate getPost_date() {
+        return post_date;
+    }
+
+    public void setPost_date(LocalDate post_date) {
+        this.post_date = post_date;
+    }
+
+    public LocalDate getModi_date() {
+        return modi_date;
+    }
+
+    public void setModi_date(LocalDate modi_date) {
+        this.modi_date = modi_date;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public String getFile_path() {
+        return file_path;
+    }
+
+    public void setFile_path(String file_path) {
+        this.file_path = file_path;
+    }
+
+    public Integer getView_count() {
+        return view_count;
+    }
+
+    public void setView_count(Integer view_count) {
+        this.view_count = view_count;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
+    }
+
+    public String getFormattedDate() {
+        return formattedDate;
+    }
+
+    public void setFormattedDate(String formattedDate) {
+        this.formattedDate = formattedDate;
+    }
+}
+package com.example.server.repository;
+
+import com.example.server.entity.Comment;
+import com.example.server.entity.Review;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface CommentRepository extends JpaRepository<Comment, Long> {
+    List<Comment> findByReview(Review review);
+}
+package com.example.server.repository;
+
+import com.example.server.entity.Event;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EventRepository extends JpaRepository<Event, Long> {
+}
+package com.example.server.repository;
+
+import com.example.server.entity.Review;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReviewRepository extends JpaRepository<Review, Long> {
+}
+package com.example.server;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class CorsConfig {
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOrigins("http://localhost:3000")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
+            }
+        };
+    }
+}
